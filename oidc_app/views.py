@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import base64
@@ -25,20 +26,26 @@ PRIVATE_KEY = os.environ.get('PRIVATE_KEY')
 EXPIRATION_TIME = timedelta(minutes=15)
 ALGORITHM = os.environ.get('ALGORITHM')
 CLIENT_ASSERTION_TYPE = os.environ.get('CLIENT_ASSERTION_TYPE')
+# Initialize logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    )
 
 
 
 def base64url_decode(input_str):
+    logging.info("Decoding base64...")
     padding = '=' * (4 - (len(input_str) % 4))
     return base64.urlsafe_b64decode(input_str + padding)
 
 
 def load_private_key_from_string(base64_key_str):
+    logging.info("Loading private key from base64 key string")
     try:
         # Decode the base64 string
         key_bytes = base64.b64decode(base64_key_str)
-        print("PK bytes")
-        print(key_bytes)
+        logging.info("*****PK bytes*****")
+        logging.info(key_bytes)
         jwk_ = json.loads(key_bytes)
 
 
@@ -82,15 +89,16 @@ def load_private_key_from_string(base64_key_str):
         # Generate the private key object
         private_key = private_numbers.private_key(default_backend())
 
-        print("Private Key Loaded Successfully")
+        logging.info("Private Key Loaded Successfully")
         return private_key
 
     except Exception as e:
-        print(f"Failed to load private key: {e}")
+        logging.error(f"Failed to load private key: {e}")
         raise
 
 
 def generate_signed_jwt(client_id):
+    logging.info("Generating signed JWT ...")
     header = {
         "alg": ALGORITHM,
         "typ": "JWT",
@@ -108,41 +116,12 @@ def generate_signed_jwt(client_id):
 
     # Generate the signed JWT
     signed_jwt = jwt.encode(payload, private_key, algorithm=ALGORITHM, headers=header)
-
+    logging.info("Signed JWT generated.")
     return signed_jwt
 
 
-def decode_jwe_response(jwe_data):
-    try:
-        # Load the private key
-        private_key = load_private_key_from_string(PRIVATE_KEY)
-        print("Private key")
-        # Create a JWE object and deserialize the data
-        jwe_token = JWE()
-        jwe_token.deserialize(jwe_data)
-
-        # Decrypt the JWE using the private key
-        jwe_token.decrypt(private_key)
-
-        # Return the decrypted plaintext
-        return jwe_token.payload.decode('utf-8')
-
-    except InvalidJWEData as e:
-        print(f"Failed to decrypt JWE: {str(e)}")
-        return None
-
-
-def decode_jwe(user_info_response: str, private_key: jwk.JWK):
-    try:
-        # Try to decode the JWE response
-        jwe = JWE(plaintext=user_info_response)
-        decrypted = jwe.decrypt(private_key)
-        return decrypted.decode('utf-8')
-    except JWTError as e:
-        print(f"Failed to decrypt JWE: {e}")
-        return None
-
 def home(request):
+
     auth_url = f"{AUTHORIZATION_ENDPOINT}?response_type=code&client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=openid profile email&acr_values=mosip:idp:acr:password"
     return render(request, 'oidc_app/home.html', {'auth_url': auth_url})
 
@@ -166,7 +145,7 @@ def callback(request):
         payload = {
             'grant_type': 'authorization_code',
             'code': code,
-            'redirect_uri': REDIRECT_URI,  # Update this if needed
+            'redirect_uri': REDIRECT_URI,
             'client_id': client_id,
             'client_assertion_type': CLIENT_ASSERTION_TYPE,
             'client_assertion': signed_jwt,
@@ -183,7 +162,7 @@ def callback(request):
                 # Parse the access token from the response
                 token_data = response.json()
                 access_token = token_data.get('access_token')
-                print(f"Access token: {access_token}")
+                logging.info(f"Access token: {access_token}")
                 userinfo_url = USERINFO_ENDPOINT
 
                 # Send request to the /userinfo endpoint with Bearer token
@@ -210,12 +189,13 @@ def callback(request):
                             'picture': picture,
                             'user_info': decoded_user_info,
                         }
+                        logging.info("User info decode successful!")
                         return render(request, 'oidc_app/callback.html', context)
                     except Exception as e:
                         return JsonResponse({"error": f"Failed to decode JWT: {str(e)}"}, status=500)
 
         except Exception as e:
-            print(f"Exception occurred {e}")
+            logging.error(f"Exception occurred {e}")
 
 
 def userinfo(request):

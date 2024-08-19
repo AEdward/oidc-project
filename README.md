@@ -1,5 +1,5 @@
 An OIDC proof of concept Django project. 
-Make sure you have the .env file and place it in the project directory (```oidc_project/.env```)
+Make sure you have the .env file and place it in the project directory (```oidc_project/.env```).
 Please also make sure you have a virtual env(venv) and install all the requirements on ```requirements.txt```
 
 Finally, to run the Django app: 
