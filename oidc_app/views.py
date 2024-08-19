@@ -197,20 +197,3 @@ def callback(request):
         except Exception as e:
             logging.error(f"Exception occurred {e}")
 
-
-def userinfo(request):
-    access_token = request.session.get('access_token')
-
-    if not access_token:
-        return redirect('home')
-
-    userinfo_response = requests.get(
-        USERINFO_ENDPOINT,
-        headers={'Authorization': f'Bearer {access_token}'}
-    )
-
-    if userinfo_response.status_code == 200:
-        userinfo_data = userinfo_response.json()
-        return render(request, 'oidc_app/userinfo.html', {'userinfo': userinfo_data})
-    else:
-        return JsonResponse({'error': 'Failed to fetch user info'}, status=userinfo_response.status_code)

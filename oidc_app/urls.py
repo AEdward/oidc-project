@@ -5,6 +5,4 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('callback/', views.callback, name='callback'),
-    path('userinfo/', views.userinfo, name='userinfo'),
-    # path('api/fetch-userinfo/', fetch_userinfo, name='fetch_userinfo'),
 ]
