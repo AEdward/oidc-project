@@ -180,6 +180,9 @@ def callback(request):
                         email = decoded_user_info.get('email', 'N/A')
                         sub = decoded_user_info.get('sub', 'N/A')
                         picture = decoded_user_info.get('picture', '')
+                        phone = decoded_user_info.get('phone', '')
+                        birthdate = decoded_user_info.get('birthdate', '')
+                        gender = decoded_user_info.get('gender', '')
 
                         # Pass the user info to the template for rendering
                         context = {
@@ -187,10 +190,14 @@ def callback(request):
                             'email': email,
                             'sub': sub,
                             'picture': picture,
-                            'user_info': decoded_user_info,
+                            'phone': phone,
+                            'birthdate': birthdate,
+                            'gender': gender,
+                            'user_info': decoded_user_info
                         }
                         logging.info("User info decode successful!")
                         return render(request, 'oidc_app/callback.html', context)
+
                     except Exception as e:
                         return JsonResponse({"error": f"Failed to decode JWT: {str(e)}"}, status=500)
 

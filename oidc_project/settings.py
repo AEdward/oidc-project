@@ -27,7 +27,13 @@ SECRET_KEY = 'django-insecure-=0@%dz@!#30ix)-ub&l_ys47lq4$@im(=-ooilm&62nx2fuv=-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '013a-196-188-157-5.ngrok-free.app',
+    '2ca0-196-188-157-5.ngrok-free.app',
+    'f5f4-196-188-157-5.ngrok-free.app',
+    'be60-196-188-157-5.ngrok-free.app',
+    'localhost',
+]
 
 
 # Application definition
@@ -77,6 +83,8 @@ TEMPLATES = [
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'https://013a-196-188-157-5.ngrok-free.app',
+    'https://2ca0-196-188-157-5.ngrok-free.app',
     # Add other origins as needed
 ]
 
@@ -128,7 +136,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

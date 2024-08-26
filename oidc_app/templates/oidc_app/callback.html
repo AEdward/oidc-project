@@ -5,55 +5,179 @@
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OIDC Callback</title>
+    <title>Fayda Mock - User Info</title>
     <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            background-color: #1a1a2e; /* Dark blue background */
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+
+        header.navbar {
+            background-color: #0f3460; /* Lighter dark blue */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            color: #f8c94e; /* Dark yellow */
+            font-size: 1.75rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand img {
+            margin-right: 15px;
+        }
+
+        main {
+            margin-top: 50px;
+        }
+
+        h1.display-4 {
+            color: #f8c94e;
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+
+        .card {
+            background-color: #162447;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .list-group-item {
+            background-color: #0f3460;
+            border-color: #f8c94e;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        h5.card-title {
+            color: #f8c94e;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        img {
+            margin-top: 20px;
+            border: 3px solid #f8c94e;
+            padding: 5px;
+        }
+
+        .btn-primary {
+            background-color: #f8c94e;
+            border: none;
+            color: #1a1a2e;
+            font-weight: bold;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 30px;
+            transition: transform 0.2s;
+        }
+
+        .btn-primary:hover {
+            background-color: #e3b63b;
+            transform: translateY(-2px);
+        }
+
+        footer.bg-dark {
+            background-color: #0f3460;
+            margin-top: 60px;
+            padding: 20px 0;
+            border-top: 2px solid #f8c94e;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .user-info-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #f8c94e;
+            text-align: center;
+        }
+
+        pre {
+            background-color: #162447;
+            color: #f8c94e;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .container {
+            max-width: 900px;
+        }
+    </style>
 </head>
 
 <body>
     <!-- Header Section -->
-    <header class="navbar navbar-dark bg-dark">
+    <header class="navbar navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="#">
-                <img src="{% static 'images/logo.png' %}" alt="Logo" width="40" height="40">
-                OIDC Authentication
+            <a class="navbar-brand" >
+                <img src="/oidc_app/images/national-id-logo.png" alt="Logo" width="50" height="50">
+                Fayda Mock Relying Party - User Info
             </a>
         </div>
     </header>
 
     <!-- Main Content Section -->
     <main class="container my-5">
-        <div class="row">
-            <div class="col-lg-12">
-                <h1 class="display-4 text-center">Welcome, {{ name }}!</h1>
-                <div class="card my-4">
-                    <div class="card-body">
-                        <h5 class="card-title">User Information</h5>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong>Name:</strong> {{ name }}</li>
-                            <li class="list-group-item"><strong>Email:</strong> {{ email }}</li>
-                            <li class="list-group-item"><strong>Subject (sub):</strong> {{ sub }}</li>
-                            {% if picture %}
-                            <li class="list-group-item text-center">
-                                <img src="{{ picture }}" alt="User Picture" class="img-fluid rounded-circle" width="150">
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </div>
+        <div class="user-info-wrapper">
+            <h1 class="display-4 text-center">Welcome, {{ name }}!</h1>
+            <div class="card my-4">
+                <div class="card-body">
+                    <h5 class="card-title text-center">User Information</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>Name:</strong> {{ name }}</li>
+                        <li class="list-group-item"><strong>Email:</strong> {{ email }}</li>
+                        <li class="list-group-item"><strong>Subject (sub):</strong> {{ sub }}</li>
+                        <li class="list-group-item"><strong>Gender:</strong> {{ gender }}</li>
+                        <li class="list-group-item"><strong>Phone:</strong> {{ phone }}</li>
+                        <li class="list-group-item"><strong>Date of Birth:</strong> {{ birthdate }}</li>
+                        {% if picture %}
+                        <li class="list-group-item text-center">
+                            <img src="{{ picture }}" alt="User Picture" class="img-fluid rounded-circle" width="150">
+                        </li>
+                        {% endif %}
+                    </ul>
                 </div>
-
-                <h2>Additional Information</h2>
-                <pre>{{ user_info | pprint }}</pre> <!-- Displays full user info in a readable format -->
-
-                <a href="/" class="btn btn-primary">Go Back</a>
             </div>
+        </div>
+
+<!--        <h2>Additional Information</h2>-->
+<!--        <pre>{{ user_info | pprint }}</pre> &lt;!&ndash; Displays full user info in a readable format &ndash;&gt;-->
+
+        <div class="text-center">
+            <a href="/" class="btn btn-primary">Go Back</a>
         </div>
     </main>
 
     <!-- Footer Section -->
-    <footer class="bg-dark text-white py-3 text-center">
+    <footer class="bg-dark text-white text-center">
         <div class="container">
-            <p>&copy; 2024 OIDC Project. All Rights Reserved.</p>
+            <p>&copy; 2024 National ID. All Rights Reserved.</p>
         </div>
     </footer>
 
