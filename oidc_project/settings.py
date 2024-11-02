@@ -27,10 +27,6 @@ SECRET_KEY = 'django-insecure-=0@%dz@!#30ix)-ub&l_ys47lq4$@im(=-ooilm&62nx2fuv=-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = [
-#     '10.50.50.95',
-#     'localhost',
-# ]
 ALLOWED_HOSTS = ['*']
 
 
@@ -80,10 +76,7 @@ TEMPLATES = [
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'https://013a-196-188-157-5.ngrok-free.app',
-    'https://2ca0-196-188-157-5.ngrok-free.app',
-    # Add other origins as needed
+
 ]
 
 WSGI_APPLICATION = 'oidc_project.wsgi.application'
