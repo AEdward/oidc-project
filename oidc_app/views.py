@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import base64
+import hashlib
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from django.views.decorators.csrf import csrf_exempt
@@ -26,45 +27,50 @@ PRIVATE_KEY = os.environ.get('PRIVATE_KEY')
 EXPIRATION_TIME = timedelta(minutes=15)
 ALGORITHM = os.environ.get('ALGORITHM')
 CLIENT_ASSERTION_TYPE = os.environ.get('CLIENT_ASSERTION_TYPE')
+
+# PKCE variables (to be used across methods)
+CODE_VERIFIER = None
+CODE_CHALLENGE = None
+
 # Initialize logging
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(message)s',
-                    )
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s %(message)s',
+)
 
-
+# Helper to generate PKCE
+def generate_pkce():
+    global CODE_VERIFIER, CODE_CHALLENGE
+    CODE_VERIFIER = base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode('utf-8')
+    CODE_CHALLENGE = base64.urlsafe_b64encode(
+        hashlib.sha256(CODE_VERIFIER.encode('utf-8')).digest()
+    ).rstrip(b'=').decode('utf-8')
 
 def base64url_decode(input_str):
     logging.info("Decoding base64...")
     padding = '=' * (4 - (len(input_str) % 4))
     return base64.urlsafe_b64decode(input_str + padding)
 
-
 def load_private_key_from_string(base64_key_str):
     logging.info("Loading private key from base64 key string")
     try:
         # Decode the base64 string
         key_bytes = base64.b64decode(base64_key_str)
-        logging.info("*****PK bytes*****")
-        logging.info(key_bytes)
         jwk_ = json.loads(key_bytes)
-
 
         # Decode the base64url components
         n = int.from_bytes(base64url_decode(jwk_['n']), 'big')
         e = int.from_bytes(base64url_decode(jwk_['e']), 'big')
         d = int.from_bytes(base64url_decode(jwk_['d']), 'big')
 
-        # If your JWK includes p, q, dp, dq, and qi, include them here
         p = int.from_bytes(base64url_decode(jwk_['p']), 'big') if 'p' in jwk_ else None
         q = int.from_bytes(base64url_decode(jwk_['q']), 'big') if 'q' in jwk_ else None
         dmp1 = int.from_bytes(base64url_decode(jwk_['dp']), 'big') if 'dp' in jwk_ else None
         dmq1 = int.from_bytes(base64url_decode(jwk_['dq']), 'big') if 'dq' in jwk_ else None
         iqmp = int.from_bytes(base64url_decode(jwk_['qi']), 'big') if 'qi' in jwk_ else None
 
-        # Create the public numbers for the key
         public_numbers = rsa.RSAPublicNumbers(e, n)
 
-        # Create the private numbers for the key (with or without primes, depending on what you have)
         if p and q and dmp1 and dmq1 and iqmp:
             private_numbers = rsa.RSAPrivateNumbers(
                 p=p,
@@ -86,16 +92,13 @@ def load_private_key_from_string(base64_key_str):
                 public_numbers=public_numbers
             )
 
-        # Generate the private key object
         private_key = private_numbers.private_key(default_backend())
-
         logging.info("Private Key Loaded Successfully")
         return private_key
 
     except Exception as e:
         logging.error(f"Failed to load private key: {e}")
         raise
-
 
 def generate_signed_jwt(client_id):
     logging.info("Generating signed JWT ...")
@@ -114,63 +117,57 @@ def generate_signed_jwt(client_id):
 
     private_key = load_private_key_from_string(PRIVATE_KEY)
 
-    # Generate the signed JWT
     signed_jwt = jwt.encode(payload, private_key, algorithm=ALGORITHM, headers=header)
     logging.info("Signed JWT generated.")
     return signed_jwt
 
-
 def home(request):
-
-    auth_url = f"{AUTHORIZATION_ENDPOINT}?response_type=code&client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=openid profile email&acr_values=mosip:idp:acr:password"
+    global CODE_VERIFIER, CODE_CHALLENGE
+    generate_pkce()  # Generate PKCE before creating the auth URL
+    auth_url = (
+        f"{AUTHORIZATION_ENDPOINT}?"
+        f"response_type=code&"
+        f"client_id={CLIENT_ID}&"
+        f"redirect_uri={REDIRECT_URI}&"
+        f"scope=openid profile email&"
+        f"acr_values=mosip:idp:acr:password&"
+        f"code_challenge={CODE_CHALLENGE}&"
+        f"code_challenge_method=S256"
+    )
     return render(request, 'oidc_app/home.html', {'auth_url': auth_url})
 
 
 @csrf_exempt
 def callback(request):
     if request.method == "GET":
-        # Retrieve the 'code' from the query parameters
         code = request.GET.get('code')
         if not code:
             return JsonResponse({"error": "Authorization code not provided"}, status=400)
 
-        # Generate signed JWT as client_assertion
-        client_id = CLIENT_ID
-        signed_jwt = generate_signed_jwt(client_id)
-
-        # Define the token endpoint URL
+        signed_jwt = generate_signed_jwt(CLIENT_ID)
         token_url = TOKEN_ENDPOINT
 
-        # Prepare the payload as URL encoded data
         payload = {
             'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': REDIRECT_URI,
-            'client_id': client_id,
+            'client_id': CLIENT_ID,
             'client_assertion_type': CLIENT_ASSERTION_TYPE,
             'client_assertion': signed_jwt,
-            'code_verifier': 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
+            'code_verifier': CODE_VERIFIER,
         }
 
-        # Send the token request
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         try:
-            # Request access token
             response = requests.post(token_url, data=payload, headers=headers)
 
             if response.status_code == 200:
-                # Parse the access token from the response
                 token_data = response.json()
                 access_token = token_data.get('access_token')
-                logging.info(f"Access token: {access_token}")
                 userinfo_url = USERINFO_ENDPOINT
-
-                # Send request to the /userinfo endpoint with Bearer token
-                userinfo_headers = {
-                    'Authorization': f'Bearer {access_token}'
-                }
+                userinfo_headers = {'Authorization': f'Bearer {access_token}'}
                 userinfo_response = requests.get(userinfo_url, headers=userinfo_headers)
-                # print(f"User info returned: {userinfo_response.content}")
+
                 if userinfo_response.status_code == 200:
                     user_info_response = userinfo_response.text
                     try:
@@ -182,7 +179,16 @@ def callback(request):
                         picture = decoded_user_info.get('picture', '')
                         phone = decoded_user_info.get('phone', '')
                         birthdate = decoded_user_info.get('birthdate', '')
-                        gender = decoded_user_info.get('gender', '')
+                        residence_status = decoded_user_info.get('residenceStatus', '')
+                        gender = decoded_user_info.get('gender', ''),
+                        address = decoded_user_info.get('address', '')
+                        logging.info("------------------------------")
+                        logging.info(user_info_response)
+                        logging.info("###############################")
+                        logging.info(decoded_user_info)
+                        logging.info("###############################")
+
+
 
                         # Pass the user info to the template for rendering
                         context = {
@@ -191,16 +197,20 @@ def callback(request):
                             'sub': sub,
                             'picture': picture,
                             'phone': phone,
+                            'residence_status': residence_status,
                             'birthdate': birthdate,
                             'gender': gender,
-                            'user_info': decoded_user_info
+                            'address': address,
                         }
+                        # logging.info("Not decoded user info:" + user_info_response)
                         logging.info("User info decode successful!")
                         return render(request, 'oidc_app/callback.html', context)
 
                     except Exception as e:
                         return JsonResponse({"error": f"Failed to decode JWT: {str(e)}"}, status=500)
+            else:
+                logging.info(f"Error occurred with status code: {response.status_code} and response is: {response.content}")
 
         except Exception as e:
-            logging.error(f"Exception occurred {e}")
+            logging.error(f"Exception occurred -- {e}")
 
