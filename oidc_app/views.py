@@ -3,6 +3,8 @@ import os
 import json
 import base64
 import hashlib
+import urllib
+
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from django.views.decorators.csrf import csrf_exempt
@@ -124,6 +126,20 @@ def generate_signed_jwt(client_id):
 def home(request):
     global CODE_VERIFIER, CODE_CHALLENGE
     generate_pkce()  # Generate PKCE before creating the auth URL
+    claims = {
+        "userinfo": {
+            "given_name": {"essential": True},
+            "Phone": {"essential": True},
+            "email": {"essential": True},
+            "picture": {"essential": True},
+            "gender": {"essential": True},
+            "birthdate": {"essential": True},
+            "address": {"essential": True}
+        },
+        "id_token": {}
+    }
+
+    encoded_claims = urllib.parse.quote(json.dumps(claims))
     auth_url = (
         f"{AUTHORIZATION_ENDPOINT}?"
         f"response_type=code&"
@@ -132,7 +148,8 @@ def home(request):
         f"scope=openid profile email&"
         f"acr_values=mosip:idp:acr:password&"
         f"code_challenge={CODE_CHALLENGE}&"
-        f"code_challenge_method=S256"
+        f"code_challenge_method=S256&"
+        f"claims={encoded_claims}"
     )
     return render(request, 'oidc_app/home.html', {'auth_url': auth_url})
 
